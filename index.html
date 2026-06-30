@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoneyScore — Prototipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F2233; --surface:#EEF1F2; --card:#FFFFFF; --muted:#5B6B73;
+    --line:#DDE3E5; --teal:#0F766E; --teal-soft:#E3F1EE; --coral:#D6512F; --coral-soft:#FBE9E2;
+    --radius:16px; --shell:430px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--surface); color:var(--ink);
+    font-family:Inter,system-ui,sans-serif; line-height:1.5;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 12px;
+  }
+  .shell{
+    width:100%; max-width:var(--shell); background:var(--card); border-radius:28px;
+    box-shadow:0 20px 60px rgba(15,34,51,.14); overflow:hidden; position:relative;
+    min-height:760px; display:flex; flex-direction:column;
+  }
+  .badge{position:absolute; top:14px; right:14px; font:600 10px/1 'IBM Plex Mono',monospace;
+    letter-spacing:.12em; color:var(--muted); background:var(--surface); padding:5px 8px; border-radius:6px; z-index:5}
+  .topbar{display:flex; align-items:center; gap:10px; padding:18px 22px 0}
+  .mark{font:900 18px/1 Fraunces,serif; letter-spacing:-.01em}
+  .mark span{color:var(--teal)}
+  .dots{display:flex; gap:6px; margin-left:auto}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--line)}
+  .dot.on{background:var(--teal)}
+  .screen{display:none; flex-direction:column; flex:1; padding:26px 24px 24px; animation:fade .35s ease}
+  .screen.active{display:flex}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+  @media (prefers-reduced-motion:reduce){.screen{animation:none}}
+
+  h1{font:600 30px/1.12 Fraunces,serif; letter-spacing:-.02em; margin:18px 0 10px}
+  .lede{color:var(--muted); font-size:15px; margin:0 0 22px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:auto 0 20px}
+  .chip{font-size:12px; color:var(--teal); background:var(--teal-soft); padding:6px 11px; border-radius:999px; font-weight:500}
+  .spacer{flex:1}
+
+  .btn{display:block; width:100%; border:0; cursor:pointer; font:600 16px Inter,sans-serif;
+    background:var(--ink); color:#fff; padding:16px; border-radius:var(--radius); text-align:center}
+  .btn:hover{background:#193449}
+  .btn.teal{background:var(--teal)} .btn.teal:hover{background:#0c6056}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+  .btn:focus-visible,.opt:focus-visible,a:focus-visible{outline:3px solid #9CC9C2; outline-offset:2px}
+  .fine{font-size:12px; color:var(--muted); text-align:center; margin-top:12px}
+  .back{background:none; border:0; color:var(--muted); font:500 14px Inter; cursor:pointer; padding:0; margin-bottom:6px; text-align:left}
+
+  .eyebrow{font:600 11px 'IBM Plex Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0 0 4px}
+  .opt{display:flex; align-items:center; gap:14px; width:100%; text-align:left; cursor:pointer;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:12px; font:inherit; color:inherit}
+  .opt:hover{border-color:var(--teal)}
+  .opt .ic{width:42px; height:42px; flex:none; border-radius:11px; background:var(--surface); display:grid; place-items:center}
+  .opt b{display:block; font-size:15px; font-weight:600}
+  .opt small{color:var(--muted); font-size:13px}
+  .opt.primary{border-color:var(--teal); background:var(--teal-soft)}
+  .tag{margin-left:auto; font:600 10px 'IBM Plex Mono'; color:var(--teal); letter-spacing:.08em}
+
+  /* processing */
+  .proc{margin:auto 0; text-align:center}
+  .ring{width:64px; height:64px; border-radius:50%; border:4px solid var(--line); border-top-color:var(--teal); margin:0 auto 22px; animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.ring{animation:none}}
+  .steps{list-style:none; padding:0; margin:0; text-align:left; max-width:260px; margin:0 auto}
+  .steps li{font-size:14px; color:var(--muted); padding:7px 0 7px 26px; position:relative}
+  .steps li.done{color:var(--ink)}
+  .steps li.done::before{content:'✓'; position:absolute; left:0; color:var(--teal); font-weight:700}
+  .steps li.cur::before{content:'›'; position:absolute; left:2px; color:var(--teal); font-weight:700}
+
+  /* result */
+  .gauge{display:flex; align-items:center; gap:18px; margin-bottom:6px}
+  .gauge svg{flex:none}
+  .gscore{font:900 30px Fraunces,serif; fill:var(--ink)}
+  .glabel{font:600 11px 'IBM Plex Mono'; letter-spacing:.08em; fill:var(--muted)}
+  .gtext b{font:600 15px Inter; display:block}
+  .gtext small{color:var(--muted); font-size:13px}
+
+  .reveal{background:var(--coral-soft); border-radius:var(--radius); padding:18px; margin:14px 0}
+  .reveal .k{font:600 11px 'IBM Plex Mono'; letter-spacing:.1em; text-transform:uppercase; color:var(--coral)}
+  .reveal .big{font:900 38px/1 Fraunces,serif; letter-spacing:-.02em; margin:4px 0 2px}
+  .reveal .num{font-family:'IBM Plex Mono',monospace}
+  .reveal .sub{font-size:14px; color:var(--ink)}
+  .reveal .sub b{color:var(--coral)}
+
+  .grid{display:flex; gap:12px; margin-bottom:14px}
+  .mini{flex:1; border:1px solid var(--line); border-radius:14px; padding:13px}
+  .mini .k{font-size:12px; color:var(--muted)}
+  .mini .v{font:600 18px Inter; margin-top:3px}
+  .mini .v small{font-size:12px; color:var(--coral); font-weight:500}
+
+  .cmp{border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px}
+  .cmp h3{font:600 14px Inter; margin:0 0 12px}
+  .bar{display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:13px}
+  .bar .lab{width:70px; color:var(--muted)}
+  .bar .track{flex:1; height:22px; background:var(--surface); border-radius:6px; overflow:hidden}
+  .bar .fill{height:100%; border-radius:6px}
+  .bar .fill.now{width:100%; background:var(--coral)}
+  .bar .fill.io{width:12%; background:var(--teal)}
+  .bar .amt{width:78px; text-align:right; font-family:'IBM Plex Mono'; font-weight:600}
+  .save{background:var(--teal-soft); color:var(--teal); border-radius:10px; padding:10px 12px; font-size:14px; font-weight:600; text-align:center}
+  .save .num{font-family:'IBM Plex Mono'}
+
+  .mifid{font-size:12px; color:var(--muted); border-left:3px solid var(--line); padding:2px 0 2px 12px; margin:14px 0 18px}
+
+  .field{width:100%; border:1px solid var(--line); border-radius:12px; padding:15px; font:inherit; margin-bottom:12px}
+  .field:focus{outline:none; border-color:var(--teal)}
+  .ok{text-align:center; margin:auto 0}
+  .ok .circle{width:64px; height:64px; border-radius:50%; background:var(--teal-soft); color:var(--teal); display:grid; place-items:center; font-size:30px; margin:0 auto 18px}
+</style>
+</head>
+<body>
+<div class="shell" role="application" aria-label="Prototipo MoneyScore">
+  <div class="badge">PROTOTIPO</div>
+  <div class="topbar">
+    <div class="mark">Money<span>Score</span></div>
+    <div class="dots" aria-hidden="true">
+      <div class="dot" data-d="0"></div><div class="dot" data-d="1"></div>
+      <div class="dot" data-d="2"></div><div class="dot" data-d="3"></div>
+    </div>
+  </div>
+
+  <!-- 1. ONBOARDING -->
+  <section class="screen active" id="s-intro">
+    <span class="spacer"></span>
+    <p class="eyebrow">Check-up gratuito</p>
+    <h1>Quanto stai pagando davvero per i tuoi investimenti?</h1>
+    <p class="lede">Carica il tuo portafoglio e scoprilo in un minuto. Niente vendite, solo i tuoi numeri.</p>
+    <div class="chips">
+      <span class="chip">Indipendente</span><span class="chip">Fee-only</span><span class="chip">I tuoi dati non si vendono</span>
+    </div>
+    <button class="btn teal" onclick="go(1)">Inizia il check-up</button>
+    <p class="fine">Gratis · circa 1 minuto · nessun impegno</p>
+  </section>
+
+  <!-- 2. UPLOAD -->
+  <section class="screen" id="s-upload">
+    <button class="back" onclick="go(0)">‹ Indietro</button>
+    <p class="eyebrow">Passo 1 di 2</p>
+    <h1>Carica il tuo portafoglio</h1>
+    <p class="lede">Scegli il modo più comodo. Funziona anche se il portafoglio è in un'altra banca o con un altro consulente.</p>
+    <button class="opt primary" onclick="go(2)">
+      <span class="ic">📷</span>
+      <span><b>Scatta una foto</b><small>del tuo riepilogo o estratto conto</small></span>
+      <span class="tag">PIÙ VELOCE</span>
+    </button>
+    <button class="opt" onclick="go(2)">
+      <span class="ic">📄</span>
+      <span><b>Carica il rendiconto MiFID</b><small>il PDF dei costi che la banca ti invia</small></span>
+    </button>
+    <button class="opt" onclick="go(2)">
+      <span class="ic">✏️</span>
+      <span><b>Inserisci manualmente</b><small>aggiungi tu gli strumenti</small></span>
+    </button>
+    <span class="spacer"></span>
+    <p class="fine">I dati servono solo per il tuo check-up. Non li vendiamo a nessuno.</p>
+  </section>
+
+  <!-- 3. PROCESSING -->
+  <section class="screen" id="s-proc">
+    <div class="proc">
+      <div class="ring" aria-hidden="true"></div>
+      <p class="eyebrow" style="text-align:center">Sto analizzando</p>
+      <ul class="steps" id="steps">
+        <li data-s="0">Leggo gli strumenti del portafoglio</li>
+        <li data-s="1">Calcolo i costi che stai pagando</li>
+        <li data-s="2">Confronto con alternative a basso costo</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4. RESULT -->
+  <section class="screen" id="s-result">
+    <p class="eyebrow">Il tuo check-up</p>
+    <div class="gauge">
+      <svg width="92" height="92" viewBox="0 0 92 92" role="img" aria-label="MoneyScore 38 su 100">
+        <circle cx="46" cy="46" r="40" fill="none" stroke="#DDE3E5" stroke-width="8"/>
+        <circle cx="46" cy="46" r="40" fill="none" stroke="#D6512F" stroke-width="8"
+          stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="155.7"
+          transform="rotate(-90 46 46)"/>
+        <text class="gscore" x="46" y="44" text-anchor="middle" dominant-baseline="middle">38</text>
+        <text class="glabel" x="46" y="62" text-anchor="middle">/ 100</text>
+      </svg>
+      <div class="gtext">
+        <b>MoneyScore: migliorabile</b>
+        <small>Il punteggio è basso soprattutto per i costi che stai sostenendo.</small>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="k">Stai pagando ogni anno</div>
+      <div class="big num">€ 5.220</div>
+      <div class="sub">il <b>2,1%</b> del tuo capitale — di cui <b>~€ 4.600 evitabili</b></div>
+    </div>
+
+    <div class="grid">
+      <div class="mini"><div class="k">Rischio</div><div class="v">5 / 7 <small>&gt; profilo</small></div></div>
+      <div class="mini"><div class="k">Sovrapposizioni</div><div class="v">3 <small>fondi simili</small></div></div>
+    </div>
+
+    <div class="cmp">
+      <h3>Lo stesso obiettivo, a basso costo</h3>
+      <div class="bar"><span class="lab">Oggi</span><span class="track"><span class="fill now"></span></span><span class="amt">€5.220</span></div>
+      <div class="bar"><span class="lab">Con IO+</span><span class="track"><span class="fill io"></span></span><span class="amt">€620</span></div>
+      <div class="save">Risparmieresti <span class="num">~€4.600</span>/anno → oltre <span class="num">€46.000</span> in 10 anni</div>
+    </div>
+
+    <p class="mifid">Stima informativa e approssimativa, basata sui dati caricati. Non è una raccomandazione personalizzata: per una proposta su misura serve un consulente OCF.</p>
+
+    <button class="btn teal" onclick="go(4)">Ricevi il report e parla con un consulente</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="go(0)">Ricomincia</button>
+  </section>
+
+  <!-- 5. LEAD -->
+  <section class="screen" id="s-lead">
+    <button class="back" onclick="go(3)">‹ Indietro</button>
+    <div id="lead-form" style="display:flex; flex-direction:column; flex:1">
+      <p class="eyebrow">Ultimo passo</p>
+      <h1>Ricevi il report completo</h1>
+      <p class="lede">Ti mandiamo l'analisi dettagliata e, se vuoi, un consulente OCF indipendente ti spiega come ridurre quei costi. Senza impegno.</p>
+      <input class="field" type="email" placeholder="La tua email" aria-label="La tua email">
+      <span class="spacer"></span>
+      <button class="btn teal" onclick="go('done')">Prenota una consulenza gratuita</button>
+      <p class="fine">Nessuna vendita automatica. Ti ricontatta una persona, non un bot.</p>
+    </div>
+  </section>
+
+  <!-- 6. DONE -->
+  <section class="screen" id="s-done">
+    <div class="ok">
+      <div class="circle">✓</div>
+      <h1 style="margin-top:0">Fatto</h1>
+      <p class="lede">Ti abbiamo inviato il report. Un consulente OCF indipendente ti scriverà a breve per spiegarti i numeri — quando vuoi tu.</p>
+      <button class="btn ghost" onclick="go(0)">Torna all'inizio</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  var screens=['s-intro','s-upload','s-proc','s-result','s-lead'];
+  var dotFor={0:0,1:1,2:2,3:3,4:3};
+  function show(id){
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+    document.getElementById(id).classList.add('active');
+  }
+  function setDots(i){
+    document.querySelectorAll('.dot').forEach(function(d){
+      d.classList.toggle('on', parseInt(d.dataset.d) <= (dotFor[i]!==undefined?dotFor[i]:3));
+    });
+  }
+  function go(step){
+    if(step==='done'){show('s-done'); setDots(4); return;}
+    var id=screens[step];
+    show(id); setDots(step);
+    if(step===2){runProcessing();}        // simulazione Wizard of Oz
+  }
+  function runProcessing(){
+    var items=document.querySelectorAll('#steps li'); var i=0;
+    items.forEach(function(li){li.className=''});
+    function tick(){
+      items.forEach(function(li){li.classList.remove('cur')});
+      if(i>0) items[i-1].classList.add('done');
+      if(i<items.length){ items[i].classList.add('cur'); i++; setTimeout(tick,800); }
+      else { setTimeout(function(){go(3);}, 500); }
+    }
+    tick();
+  }
+  setDots(0);
+</script>
+</body>
+</html>
